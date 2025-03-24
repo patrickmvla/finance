@@ -8,6 +8,13 @@
       "when": 1742636817959,
       "tag": "0000_pretty_venus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1742738985721,
+      "tag": "0001_large_callisto",
+      "breakpoints": true
     }
   ]
 }
