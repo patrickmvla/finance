@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sheet";
 import { AccountForm } from "./account-form";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const formSchema = insertAccountSchema.pick({
   name: true,
 });

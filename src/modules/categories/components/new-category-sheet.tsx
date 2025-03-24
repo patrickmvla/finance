@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sheet";
 import { CategoryForm } from "./category-form";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const formSchema = insertCategorySchema.pick({ name: true });
 
 type FormValues = z.input<typeof formSchema>;

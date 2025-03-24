@@ -15,6 +15,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { CategoryForm } from "./category-form";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const formSchema = insertCategorySchema.pick({ name: true });
 
 type FormValues = z.input<typeof formSchema>;

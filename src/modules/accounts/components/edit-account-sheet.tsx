@@ -16,6 +16,7 @@ import { Loader2 } from "lucide-react";
 import { AccountForm } from "./account-form";
 import { toast } from "sonner";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const formSchema = insertAccountSchema.pick({ name: true });
 
 type FormValues = z.input<typeof formSchema>;
