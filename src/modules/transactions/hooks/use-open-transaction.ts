@@ -7,7 +7,7 @@ type OpenTransactionState = {
   onClose: () => void;
 };
 
-export const useOpenTransactions = create<OpenTransactionState>((set) => ({
+export const useOpenTransaction = create<OpenTransactionState>((set) => ({
   id: undefined,
   isOpen: false,
   onOpen: (id: string) => set({ isOpen: true, id }),
