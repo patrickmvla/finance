@@ -1,6 +1,6 @@
 import { insertAccountSchema } from "@/db/schema";
 import { z } from "zod";
-import useOpenAccount from "../hooks/use-open-account";
+import {useOpenAccount} from "../hooks/use-open-account";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useGetAccount } from "../api/use-get-account";
 import { useEditAccount } from "../api/use-edit-account";
