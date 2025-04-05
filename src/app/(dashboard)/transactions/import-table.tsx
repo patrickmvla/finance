@@ -14,7 +14,6 @@ type Props = {
   selectedColumns: Record<string, string | null>;
   onTableHeadSelectChange: (columnIndex: number, value: string | null) => void;
 };
-
 export const ImportTable = ({
   headers,
   body,
@@ -26,7 +25,7 @@ export const ImportTable = ({
       <Table>
         <TableHeader>
           <TableRow>
-            {headers.map((_item, index) => (
+            {headers.map((header, index) => (
               <TableHead key={index}>
                 <TableHeadSelect
                   columnIndex={index}

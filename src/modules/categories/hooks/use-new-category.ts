@@ -6,8 +6,10 @@ type NewCategoryState = {
   onClose: () => void;
 };
 
-export const useNewCategory = create<NewCategoryState>((set) => ({
+const useNewCategory = create<NewCategoryState>((set) => ({
   isOpen: false,
   onOpen: () => set({ isOpen: true }),
-  onClose: () => set({ isOpen: true }),
+  onClose: () => set({ isOpen: false }),
 }));
+
+export default useNewCategory;

@@ -1,32 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-
 import { client } from "@/lib/hono";
 import { convertAmountFromMiliunits } from "@/lib/utils";
 
-export const useGetSummary = () => {
-  const params = useSearchParams();
-  const from = params.get("from") || "";
-  const to = params.get("to") || "";
-  const accountId = params.get("accountId") || "";
-
+const useGetSummary = () => {
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from") || "";
+  const to = searchParams.get("to") || "";
+  const accountId = searchParams.get("accountId") || "";
   const query = useQuery({
-    // TODO: Check if params are needed in the key
+    // TODO: check  params are not empty
     queryKey: ["summary", { from, to, accountId }],
     queryFn: async () => {
-      const response = await client.api.summary.$get({
+      const res = await client.api.summary.$get({
         query: { from, to, accountId },
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch summary");
+      if (!res.ok) {
+        throw new Error("Failed to fetch transactions");
       }
+      const { data } = await res.json();
 
-      const { data } = await response.json();
       return {
         ...data,
         incomeAmount: convertAmountFromMiliunits(data.incomeAmount),
-        expenseAmount: convertAmountFromMiliunits(data.expenseAmount),
+        expensesAmount: convertAmountFromMiliunits(data.expensesAmount),
         remainingAmount: convertAmountFromMiliunits(data.remainingAmount),
         categories: data.categories.map((category) => ({
           ...category,
@@ -35,10 +32,12 @@ export const useGetSummary = () => {
         days: data.days.map((day) => ({
           ...day,
           income: convertAmountFromMiliunits(day.income),
-          expense: convertAmountFromMiliunits(day.expense),
+          expenses: convertAmountFromMiliunits(day.expenses),
         })),
       };
     },
   });
   return query;
 };
+
+export default useGetSummary;

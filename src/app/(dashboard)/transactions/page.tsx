@@ -1,82 +1,84 @@
 "use client";
+// icons
+import { Loader2, Plus } from "lucide-react";
 
+// transactions hooks
+import { useNewTransaction } from "@/modules/transactions/hooks";
+// transactions api
+import {
+  useGetTransactions,
+  useBulkDeleteTransactions,
+  useBulkCreateTransactions,
+} from "@/modules/transactions/api";
+
+// components
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PlusIcon } from "lucide-react";
-import { columns } from "./columns";
-import { DataTable } from "@/components/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useNewTransaction } from "@/modules/transactions/hooks/use-new-transaction";
-import { useBulkDeleteTransactions } from "@/modules/transactions/api/use-bulk-delete-transactions";
-import { useGetTransactions } from "@/modules/transactions/api/use-get-transactions";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DataTable } from "@/components/data-table";
+import { columns } from "./columns";
 import { useState } from "react";
 import { UploadButton } from "./upload-button";
 import { ImportCard } from "./import-card";
+
 import { transactions as transactionsSchema } from "@/db/schema";
+// account hook
 import { useSelectAccount } from "@/modules/accounts/hooks/use-select-account";
 import { toast } from "sonner";
-import { useBulkCreateTransactions } from "@/modules/transactions/api/use-bulk-create-transactions";
 
-enum VARIANTS {
+enum VARIANT {
   LIST = "LIST",
   IMPORT = "IMPORT",
 }
 
 const INITIAL_IMPORT_RESULTS = {
   data: [],
-  errors: [],
+  error: [],
   meta: {},
 };
 
-export default function TransactionsPage() {
+const TransactionsPage = () => {
   const [AccountDialog, confirm] = useSelectAccount();
-  const [variant, setVariant] = useState<VARIANTS>(VARIANTS.LIST);
+  const [variant, setVariant] = useState<VARIANT>(VARIANT.LIST);
   const [importResults, setImportResults] = useState(INITIAL_IMPORT_RESULTS);
 
-  const newTransaction = useNewTransaction();
-  const createTransactions = useBulkCreateTransactions();
-  const deleteTransactions = useBulkDeleteTransactions();
-  const transactionsQuery = useGetTransactions();
-  const transactions = transactionsQuery.data || [];
-
-  const isDisabled =
-    transactionsQuery.isLoading || deleteTransactions.isPending;
-
   const onUpload = (results: typeof INITIAL_IMPORT_RESULTS) => {
-    console.log(results);
+    setVariant(VARIANT.IMPORT);
     setImportResults(results);
-    setVariant(VARIANTS.IMPORT);
   };
 
-  const onCancelImport = () => {
+  const onCancelUpload = () => {
+    setVariant(VARIANT.LIST);
     setImportResults(INITIAL_IMPORT_RESULTS);
-    setVariant(VARIANTS.LIST);
   };
 
   const onSubmitImport = async (
     values: (typeof transactionsSchema.$inferInsert)[]
   ) => {
-    const accountId = await confirm();
-
-    if (!accountId) {
-      return toast.error("Please select an account to continue");
-    }
-
-    const data = values.map((value) => ({
-      ...value,
-      accountId: accountId as string,
+    const accountId = (await confirm()) as string;
+    if (!accountId) toast.error("Please select an account to continue!");
+    const data = values.map((transaction) => ({
+      ...transaction,
+      accountId,
     }));
-
-    createTransactions.mutate(data, {
+    bulkCreateTransaction.mutate(data, {
       onSuccess: () => {
-        onCancelImport();
+        onCancelUpload();
+        toast.success("Transactions imported successfully");
       },
+      onError: () => toast.error("Failed to import transactions"),
     });
   };
+  const newTransaction = useNewTransaction();
+  const bulkCreateTransaction = useBulkCreateTransactions();
+  const deleteTransaction = useBulkDeleteTransactions();
+  const transactionsQuery = useGetTransactions();
+  const transactions = transactionsQuery.data || [];
 
-  if (transactionsQuery.isLoading) {
+  const isDisabled = deleteTransaction.isPending || transactionsQuery.isLoading;
+  if (transactionsQuery.isLoading)
     return (
-      <div className="max-w-screen-2xl mx-auto -mt-24 w-full pb-10">
+      <div className="max-w-screen-2xl mx-auto w-full pb-10 -mt-24">
         <Card className="border-none drop-shadow-sm">
           <CardHeader>
             <Skeleton className="h-8 w-48" />
@@ -89,35 +91,32 @@ export default function TransactionsPage() {
         </Card>
       </div>
     );
-  }
-
-  if (variant === VARIANTS.IMPORT) {
+  if (variant === VARIANT.IMPORT) {
     return (
       <>
         <AccountDialog />
         <ImportCard
           data={importResults.data}
-          onCancel={onCancelImport}
+          onCancel={onCancelUpload}
           onSubmit={onSubmitImport}
         />
       </>
     );
   }
-
   return (
-    <div className="max-w-screen-2xl mx-auto -mt-24 w-full pb-10">
+    <div className="max-w-screen-2xl mx-auto w-full pb-10 -mt-24">
       <Card className="border-none drop-shadow-sm">
         <CardHeader className="gap-y-2 lg:flex-row lg:items-center lg:justify-between">
           <CardTitle className="text-xl line-clamp-1">
             Transactions History
           </CardTitle>
-          <div className="flex items-center gap-x-2 flex-col gap-y-2 lg:flex-row">
+          <div className="flex flex-col lg:flex-row items-center gap-x-2 gap-y-2">
             <Button
               size={"sm"}
               onClick={newTransaction.onOpen}
               className="w-full lg:w-auto"
             >
-              <PlusIcon className="size-4 mr-2" />
+              <Plus className="mr-2 size-4" />
               Add new
             </Button>
             <UploadButton onUpload={onUpload} />
@@ -128,14 +127,16 @@ export default function TransactionsPage() {
             columns={columns}
             data={transactions}
             filterKey="payee"
+            disabled={isDisabled}
             onDelete={(row) => {
               const ids = row.map((r) => r.original.id);
-              deleteTransactions.mutate({ ids });
+              deleteTransaction.mutate({ ids });
             }}
-            disabled={isDisabled}
           />
         </CardContent>
       </Card>
     </div>
   );
-}
+};
+
+export default TransactionsPage;

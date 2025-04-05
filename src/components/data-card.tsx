@@ -1,20 +1,20 @@
-import { cva, VariantProps } from "class-variance-authority";
-import { IconType } from "react-icons";
+import { IconType } from "react-icons/lib";
+import { VariantProps, cva } from "class-variance-authority";
+import { cn, formatCurrency, formatPercentage } from "@/lib/utils";
+import { CountUp } from "@/components/count-up";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "./ui/card";
-import { cn, formatCurrency, formatPerncetage } from "@/lib/utils";
-import { CountUp } from "./count-up";
-
-const boxVariant = cva("rounded-md p-3", {
+} from "@/components/ui/card";
+import { Skeleton } from "./ui/skeleton";
+const boxVariants = cva("rounded-md p-3", {
   variants: {
     variant: {
       default: "bg-blue-500/20",
-      success: "bg-emerald-500/20",
+      success: "bg-emerald/20",
       danger: "bg-rose-500/20",
       warning: "bg-yellow-500/20",
     },
@@ -24,13 +24,13 @@ const boxVariant = cva("rounded-md p-3", {
   },
 });
 
-const iconVariant = cva("size-6", {
+const iconVariants = cva("h-6 w-6", {
   variants: {
     variant: {
-      default: "fill-blue-500",
-      success: "fill-emerald-500",
-      danger: "fill-rose-500",
-      warning: "fill-yellow-500",
+      default: "text-blue-500",
+      success: "text-emerald-500",
+      danger: "text-rose-500",
+      warning: "text-yellow-500",
     },
   },
   defaultVariants: {
@@ -38,25 +38,25 @@ const iconVariant = cva("size-6", {
   },
 });
 
-type BoxVariants = VariantProps<typeof boxVariant>;
-type IconVariants = VariantProps<typeof iconVariant>;
+type BoxVariants = VariantProps<typeof boxVariants>;
+type IconVariants = VariantProps<typeof iconVariants>;
 
-interface DataCardProps extends BoxVariants, IconVariants {
+interface Props extends BoxVariants, IconVariants {
   title: string;
-  icon: IconType;
   value?: number;
+  percentChange?: number;
+  icon: IconType;
   dateRange: string;
-  percentageChange?: number;
 }
 
 export const DataCard = ({
   title,
-  icon: Icon,
   value = 0,
+  percentChange = 0,
+  icon: Icon,
   variant,
   dateRange,
-  percentageChange = 0,
-}: DataCardProps) => {
+}: Props) => {
   return (
     <Card className="border-none drop-shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between gap-x-4">
@@ -66,16 +66,16 @@ export const DataCard = ({
             {dateRange}
           </CardDescription>
         </div>
-        <div className={cn(boxVariant({ variant }))}>
-          <Icon className={cn(iconVariant({ variant }))} />
+        <div className={cn("shrink-0", boxVariants({ variant }))}>
+          <Icon className={iconVariants({ variant })} />
         </div>
       </CardHeader>
       <CardContent>
         <h1 className="font-bold text-2xl mb-2 line-clamp-1 break-all">
           <CountUp
-            preserveValue
             start={0}
             end={value}
+            preserveValue
             decimals={2}
             decimalPlaces={2}
             formattingFn={formatCurrency}
@@ -84,13 +84,30 @@ export const DataCard = ({
         <p
           className={cn(
             "text-muted-foreground text-sm line-clamp-1",
-            percentageChange > 0 && "text-emerald-500",
-            percentageChange < 0 && "text-rose-500"
+            percentChange > 0 ? "text-emerald-500" : "text-rose-500"
           )}
         >
-          {formatPerncetage(percentageChange, { addPrefix: true })} from last
+          {formatPercentage(percentChange, { addPrefix: true })} from last
           period
         </p>
+      </CardContent>
+    </Card>
+  );
+};
+
+export const DataCardLoading = () => {
+  return (
+    <Card className="border-none drop-shadow-sm h-[192px]">
+      <CardHeader className="flex flex-row items-center justify-between gap-x-4">
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-4 w-40" />
+        </div>
+        <Skeleton className="size-12" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="shrink-0 h-10 w-24 mb-2" />
+        <Skeleton className="shrink-0 h-4 w-40" />
       </CardContent>
     </Card>
   );

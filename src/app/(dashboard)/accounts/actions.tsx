@@ -1,5 +1,5 @@
 "use client";
-
+// schadcn components
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -7,36 +7,35 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useDeleteAccount } from "@/modules/accounts/api/use-delete-account";
-import { useOpenAccount } from "@/modules/accounts/hooks/use-open-account";
+// account api
+import { useDeleteAccount } from "@/modules/accounts/api";
+// account hook
+import { useOpenAccount } from "@/modules/accounts/hooks";
+// global hook
 import { useConfirm } from "@/hooks/use-confirm";
+// icons
 import { Edit, MoreHorizontal, Trash } from "lucide-react";
 
-type Props = {
-  id: string;
-};
-
-export const Actions = ({ id }: Props) => {
-  const { onOpen } = useOpenAccount();
+export const Actions = ({ id }: { id: string }) => {
   const deleteMutation = useDeleteAccount(id);
-  const [ConfirmDialog, confirm] = useConfirm(
-    "Are you sure?",
-    "Your are about to delete this account"
+  const { onOpen } = useOpenAccount();
+  const [ConfirmationDialog, confirm] = useConfirm(
+    "Delete Account",
+    "Are you sure you want to delete this account?"
   );
-
   const handleDelete = async () => {
     const ok = await confirm();
     if (ok) {
       deleteMutation.mutate();
     }
   };
-
   return (
     <>
-      <ConfirmDialog />
+      <ConfirmationDialog />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="size-8 p-0" variant={"ghost"}>
+          <Button variant="ghost" className="size-8 p-0">
+            <span className="sr-only">Open menu</span>
             <MoreHorizontal className="size-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -50,7 +49,7 @@ export const Actions = ({ id }: Props) => {
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={deleteMutation.isPending}
-            onClick={handleDelete}
+            onClick={() => handleDelete()}
           >
             <Trash className="size-4 mr-2" />
             Delete

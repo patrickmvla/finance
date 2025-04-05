@@ -7,9 +7,11 @@ type OpenCategoryState = {
   onClose: () => void;
 };
 
-export const useOpenCategory = create<OpenCategoryState>((set) => ({
+const useOpenCategory = create<OpenCategoryState>((set) => ({
   id: undefined,
   isOpen: false,
   onOpen: (id: string) => set({ isOpen: true, id }),
   onClose: () => set({ isOpen: false, id: undefined }),
 }));
+
+export default useOpenCategory;

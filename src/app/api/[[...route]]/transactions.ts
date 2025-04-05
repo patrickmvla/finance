@@ -43,7 +43,7 @@ const app = new Hono()
       const data = await db
         .select({
           id: transactions.id,
-          date: transactions.dates,
+          date: transactions.date,
           category: categories.name,
           categoryId: transactions.categoryId,
           payee: transactions.payee,
@@ -59,11 +59,11 @@ const app = new Hono()
           and(
             accountId ? eq(transactions.accountId, accounts.id) : undefined,
             eq(accounts.userId, auth.userId),
-            gte(transactions.dates, startDate),
-            lte(transactions.dates, endDate)
+            gte(transactions.date, startDate),
+            lte(transactions.date, endDate)
           )
         )
-        .orderBy(desc(transactions.dates));
+        .orderBy(desc(transactions.date));
 
       return c.json({ data });
     }
@@ -92,7 +92,7 @@ const app = new Hono()
       const [data] = await db
         .select({
           id: transactions.id,
-          date: transactions.dates,
+          date: transactions.date,
           categoryId: transactions.categoryId,
           payee: transactions.payee,
           amount: transactions.amount,

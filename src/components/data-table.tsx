@@ -1,22 +1,19 @@
 "use client";
+import { Trash } from "lucide-react";
 
-import { useConfirm } from "@/hooks/use-confirm";
 import {
   ColumnDef,
+  SortingState,
   ColumnFiltersState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
+  useReactTable,
   getPaginationRowModel,
   getSortedRowModel,
+  getFilteredRowModel,
   Row,
-  SortingState,
-  useReactTable,
 } from "@tanstack/react-table";
-import { useState } from "react";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
-import { Trash2Icon } from "lucide-react";
+
 import {
   Table,
   TableBody,
@@ -24,9 +21,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
+} from "@/components/ui/table";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { useConfirm } from "@/hooks/use-confirm";
+import React from "react";
 
-interface Props<TData, TValue> {
+interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   filterKey: string;
@@ -34,32 +35,32 @@ interface Props<TData, TValue> {
   disabled?: boolean;
 }
 
-export const DataTable = <TData, TValue>({
+export function DataTable<TData, TValue>({
   columns,
   data,
   filterKey,
   onDelete,
   disabled,
-}: Props<TData, TValue>) => {
-  const [ConfirmDialog, confirm] = useConfirm(
-    "are you sure",
-    "you're about to perform a bulk delete"
+}: DataTableProps<TData, TValue>) {
+  const [ConfirmationDialog, confirm] = useConfirm(
+    "Are you sure?",
+    "You are about to delete a bulk of data?"
   );
-
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [rowSelection, setRowSelection] = useState({});
-
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    []
+  );
+  const [rowSelection, setRowSelection] = React.useState({});
   const table = useReactTable({
     data,
     columns,
+    onColumnFiltersChange: setColumnFilters,
+    onSortingChange: setSorting,
+    onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onRowSelectionChange: setRowSelection,
     state: {
       sorting,
       columnFilters,
@@ -69,35 +70,31 @@ export const DataTable = <TData, TValue>({
 
   return (
     <div>
-      <ConfirmDialog />
+      <ConfirmationDialog />
       <div className="flex items-center py-4">
         <Input
-          placeholder={`Filter ${filterKey}...`}
-          value={
-            (table.getColumn(`${filterKey}`)?.getFilterValue() as string) ?? ""
-          }
+          placeholder={`Filter by ${filterKey}`}
+          value={(table.getColumn(filterKey)?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
-            table.getColumn(`${filterKey}`)?.setFilterValue(event.target.value)
+            table.getColumn(filterKey)?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
-        {table.getFilteredSelectedRowModel().rows.length > 0 && (
+        {table.getSelectedRowModel().rows.length > 0 && (
           <Button
+            variant="destructive"
+            size="sm"
+            disabled={disabled}
+            className="ml-auto font-normal text-xs"
             onClick={async () => {
               const ok = await confirm();
-
-              if (ok) {
-                onDelete(table.getFilteredSelectedRowModel().rows);
-                table.resetRowSelection();
-              }
+              if (!ok) return;
+              onDelete(table.getSelectedRowModel().rows);
+              table.resetRowSelection();
             }}
-            disabled={disabled}
-            variant={"outline"}
-            size={"sm"}
-            className="ml-auto font-normal text-sm"
           >
-            <Trash2Icon className="size-4 mr-2" />
-            Delete ({table.getFilteredSelectedRowModel().rows.length})
+            <Trash className="size-4 mr-2" />
+            Delete ({table.getSelectedRowModel().rows.length})
           </Button>
         )}
       </div>
@@ -140,7 +137,12 @@ export const DataTable = <TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell>no results</TableCell>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No results.
+                </TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -148,9 +150,18 @@ export const DataTable = <TData, TValue>({
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of {""}
-          {table.getFilteredRowModel().rows.length} row(s) selected
+          {table.getFilteredSelectedRowModel().rows.length} of{" "}
+          {table.getFilteredRowModel().rows.length} row(s) selected.
         </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
+          Previous
+        </Button>
         <Button
           variant="outline"
           size="sm"
@@ -162,4 +173,4 @@ export const DataTable = <TData, TValue>({
       </div>
     </div>
   );
-};
+}

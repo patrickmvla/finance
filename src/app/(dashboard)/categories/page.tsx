@@ -1,26 +1,29 @@
 "use client";
+// icons
+import { Loader2, Plus } from "lucide-react";
 
+// categories hooks
+import { useNewCategory } from "@/modules/categories/hooks";
+// categories api
+import { useGetCategories, useBulkDeleteCategories } from "@/modules/categories/api";
+
+// components
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, PlusIcon } from "lucide-react";
-import { columns } from "./columns";
-import { DataTable } from "@/components/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useNewCategory } from "@/modules/categories/hooks/use-new-category";
-import { useBulkDeleteCategories } from "@/modules/categories/api/use-bulk-delete";
-import { useGetCategories } from "@/modules/categories/api/use-get-categories";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DataTable } from "@/components/data-table";
+import { columns } from "./columns";
 
-export default function CategoriesPage() {
+const CategoriesPage = () => {
   const newCategory = useNewCategory();
-  const deleteAccounts = useBulkDeleteCategories();
-  const accountsQuery = useGetCategories();
-  const accounts = accountsQuery.data || [];
+  const deleteCategory = useBulkDeleteCategories();
+  const categoriesQuery = useGetCategories();
+  const categories = categoriesQuery.data || [];
 
-  const isDisabled = accountsQuery.isLoading || deleteAccounts.isPending;
-
-  if (accountsQuery.isLoading) {
+  const isDisabled = deleteCategory.isPending || categoriesQuery.isLoading;
+  if (categoriesQuery.isLoading)
     return (
-      <div className="max-w-screen-2xl mx-auto -mt-24 w-full pb-10">
+      <div className="max-w-screen-2xl mx-auto w-full pb-10 -mt-24">
         <Card className="border-none drop-shadow-sm">
           <CardHeader>
             <Skeleton className="h-8 w-48" />
@@ -33,31 +36,33 @@ export default function CategoriesPage() {
         </Card>
       </div>
     );
-  }
-
   return (
-    <div className="max-w-screen-2xl mx-auto -mt-24 w-full pb-10">
+    <div className="max-w-screen-2xl mx-auto w-full pb-10 -mt-24">
       <Card className="border-none drop-shadow-sm">
         <CardHeader className="gap-y-2 lg:flex-row lg:items-center lg:justify-between">
-          <CardTitle className="text-xl line-clamp-1">Categories</CardTitle>
+          <CardTitle className="text-xl line-clamp-1">
+            Categories page
+          </CardTitle>
           <Button size={"sm"} onClick={newCategory.onOpen}>
-            <PlusIcon className="size-4 mr-2" />
+            <Plus className="mr-2 size-4" />
             Add new
           </Button>
         </CardHeader>
         <CardContent>
           <DataTable
             columns={columns}
-            data={accounts}
+            data={categories}
             filterKey="name"
+            disabled={isDisabled}
             onDelete={(row) => {
               const ids = row.map((r) => r.original.id);
-              deleteAccounts.mutate({ ids });
+              deleteCategory.mutate({ ids });
             }}
-            disabled={isDisabled}
           />
         </CardContent>
       </Card>
     </div>
   );
-}
+};
+
+export default CategoriesPage;

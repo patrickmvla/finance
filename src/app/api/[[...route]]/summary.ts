@@ -1,13 +1,13 @@
-import { db } from "@/db/drizzle";
-import { accounts, categories, transactions } from "@/db/schema";
-import { calculatePercentageChange, fillMissingDays } from "@/lib/utils";
 import { clerkMiddleware, getAuth } from "@hono/clerk-auth";
 import { zValidator } from "@hono/zod-validator";
-import { differenceInDays, parse, subDays } from "date-fns";
-import { and, desc, eq, gte, lt, lte, sql, sum } from "drizzle-orm";
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
-
+import { subDays, parse, differenceInDays } from "date-fns";
+import { db } from "@/db/drizzle";
+import { accounts, categories, transactions } from "@/db/schema";
+import { and, desc, eq, gte, lt, lte, sql, sum } from "drizzle-orm";
+import { calculatePercentage, fillMissingDays } from "@/lib/utils";
 const app = new Hono().get(
   "/",
   clerkMiddleware(),
@@ -21,12 +21,12 @@ const app = new Hono().get(
   ),
   async (c) => {
     const auth = getAuth(c);
-    const { from, to, accountId } = c.req.valid("query");
-
     if (!auth?.userId) {
-      return c.json({ error: "Unauthorized" }, 401);
+      throw new HTTPException(401, {
+        res: c.json({ message: "Unauthorized" }, 401),
+      });
     }
-
+    const { from, to, accountId } = c.req.valid("query");
     const defaultTo = new Date();
     const defaultFrom = subDays(defaultTo, 30);
 
@@ -34,19 +34,22 @@ const app = new Hono().get(
       ? parse(from, "yyyy-MM-dd", new Date())
       : defaultFrom;
     const endDate = to ? parse(to, "yyyy-MM-dd", new Date()) : defaultTo;
-
     const periodLength = differenceInDays(endDate, startDate) + 1;
     const lastPeriodStart = subDays(startDate, periodLength);
     const lastPeriodEnd = subDays(endDate, periodLength);
 
-    async function fetchFinancialData(userId: string, from: Date, to: Date) {
+    async function fetchFinancialData(
+      userId: string,
+      startedDate: Date,
+      endDate: Date
+    ) {
       return await db
         .select({
           income:
             sql`SUM(CASE WHEN ${transactions.amount} >= 0 THEN ${transactions.amount} ELSE 0 END)`.mapWith(
               Number
             ),
-          expense:
+          expenses:
             sql`SUM(CASE WHEN ${transactions.amount} < 0 THEN ${transactions.amount} ELSE 0 END)`.mapWith(
               Number
             ),
@@ -56,10 +59,10 @@ const app = new Hono().get(
         .innerJoin(accounts, eq(transactions.accountId, accounts.id))
         .where(
           and(
-            accountId ? eq(transactions.accountId, accountId) : undefined,
+            //   accountId ? eq(accounts.id, accountId) : undefined,
             eq(accounts.userId, userId),
-            gte(transactions.dates, from),
-            lte(transactions.dates, to)
+            gte(transactions.date, startedDate),
+            lte(transactions.date, endDate)
           )
         );
     }
@@ -75,17 +78,17 @@ const app = new Hono().get(
       lastPeriodEnd
     );
 
-    const incomeChange = calculatePercentageChange(
-      currentPeriod.income,
-      lastPeriod.income
+    const incomeChange = calculatePercentage(
+      currentPeriod.income ?? 0,
+      lastPeriod.income ?? 0
     );
-    const expenseChange = calculatePercentageChange(
-      currentPeriod.expense,
-      lastPeriod.expense
+    const expensesChange = calculatePercentage(
+      currentPeriod.expenses ?? 0,
+      lastPeriod.expenses ?? 0
     );
-    const remainingChange = calculatePercentageChange(
-      currentPeriod.remaining,
-      lastPeriod.remaining
+    const remainingChange = calculatePercentage(
+      currentPeriod.remaining ?? 0,
+      lastPeriod.remaining ?? 0
     );
 
     const category = await db
@@ -98,22 +101,19 @@ const app = new Hono().get(
       .innerJoin(categories, eq(transactions.categoryId, categories.id))
       .where(
         and(
-          accountId ? eq(transactions.accountId, accountId) : undefined,
+          accountId ? eq(accounts.id, accountId) : undefined,
           eq(accounts.userId, auth.userId),
           lt(transactions.amount, 0),
-          gte(transactions.dates, startDate),
-          lte(transactions.dates, endDate)
+          gte(transactions.date, startDate),
+          lte(transactions.date, endDate)
         )
       )
       .groupBy(categories.name)
-      .orderBy(desc(sql`SUM(ABS(${transactions.amount}))`));
+      .orderBy(desc(sql`SUM(ABS(${transactions.amount}))`.mapWith(Number)));
 
     const topCategories = category.slice(0, 3);
     const otherCategories = category.slice(3);
-    const otherSum = otherCategories.reduce(
-      (sum, current) => sum + current.value,
-      0
-    );
+    const otherSum = otherCategories.reduce((acc, curr) => acc + curr.value, 0);
     const finalCategories = topCategories;
     if (otherCategories.length > 0) {
       finalCategories.push({ name: "Other", value: otherSum });
@@ -121,12 +121,12 @@ const app = new Hono().get(
 
     const activeDays = await db
       .select({
-        date: transactions.dates,
+        date: transactions.date,
         income:
-          sql`SUM(CASE WHEN ${transactions.amount} >= 0 THEN ${transactions.amount} ELSE 0 END)`.mapWith(
+          sql`SUM(CASE WHEN ${transactions.amount} > 0 THEN ${transactions.amount} ELSE 0 END)`.mapWith(
             Number
           ),
-        expense:
+        expenses:
           sql`SUM(CASE WHEN ${transactions.amount} < 0 THEN ABS(${transactions.amount}) ELSE 0 END)`.mapWith(
             Number
           ),
@@ -135,25 +135,34 @@ const app = new Hono().get(
       .innerJoin(accounts, eq(transactions.accountId, accounts.id))
       .where(
         and(
-          accountId ? eq(transactions.accountId, accountId) : undefined,
+          accountId ? eq(accounts.id, accountId) : undefined,
           eq(accounts.userId, auth.userId),
-          gte(transactions.dates, startDate),
-          lte(transactions.dates, endDate)
+          // lt(transactions.amount, 0),
+          gte(transactions.date, startDate),
+          lte(transactions.date, endDate)
         )
       )
-      .groupBy(transactions.dates)
-      .orderBy(transactions.dates);
+      .groupBy(transactions.date)
+      .orderBy(transactions.date);
 
     const days = fillMissingDays(activeDays, startDate, endDate);
-
+    // return c.json({
+    //   currentPeriod,
+    //   lastPeriod,
+    //   incomeChange,
+    //   expensesChange,
+    //   remainingChange,
+    //   finalCategories,
+    //   days,
+    // });
     return c.json({
       data: {
         remainingAmount: currentPeriod.remaining,
-        remainingChange,
+        remainingChange: remainingChange,
         incomeAmount: currentPeriod.income,
-        incomeChange,
-        expenseAmount: currentPeriod.expense,
-        expenseChange,
+        incomeChange: incomeChange,
+        expensesAmount: currentPeriod.expenses,
+        expensesChange: expensesChange,
         categories: finalCategories,
         days,
       },

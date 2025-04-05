@@ -1,5 +1,7 @@
 "use client";
-
+// icons
+import { Edit, MoreHorizontal, Trash } from "lucide-react";
+// components
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -7,36 +9,30 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useDeleteTransaction } from "@/modules/transactions/api/use-delete-transaction";
-import { useOpenTransaction } from "@/modules/transactions/hooks/use-open-transaction";
+import { useDeleteTransaction } from "@/modules/transactions/api";
+import { useOpenTransaction } from "@/modules/transactions/hooks";
 import { useConfirm } from "@/hooks/use-confirm";
-import { Edit, MoreHorizontal, Trash } from "lucide-react";
 
-type Props = {
-  id: string;
-};
-
-export const Actions = ({ id }: Props) => {
-  const { onOpen } = useOpenTransaction();
+export const Actions = ({ id }: { id: string }) => {
   const deleteMutation = useDeleteTransaction(id);
-  const [ConfirmDialog, confirm] = useConfirm(
-    "Are you sure?",
-    "Your are about to delete this transaction"
+  const { onOpen } = useOpenTransaction();
+  const [ConfirmationDialog, confirm] = useConfirm(
+    "Delete Transaction",
+    "Are you sure you want to delete this transaction?"
   );
-
   const handleDelete = async () => {
     const ok = await confirm();
     if (ok) {
       deleteMutation.mutate();
     }
   };
-
   return (
     <>
-      <ConfirmDialog />
+      <ConfirmationDialog />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="size-8 p-0" variant={"ghost"}>
+          <Button variant="ghost" className="size-8 p-0">
+            <span className="sr-only">Open menu</span>
             <MoreHorizontal className="size-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -50,7 +46,7 @@ export const Actions = ({ id }: Props) => {
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={deleteMutation.isPending}
-            onClick={handleDelete}
+            onClick={() => handleDelete()}
           >
             <Trash className="size-4 mr-2" />
             Delete

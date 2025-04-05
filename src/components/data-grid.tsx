@@ -1,24 +1,21 @@
 "use client";
-
-import { useGetSummary } from "@/modules/summary/api/use-get-summary";
+import { Suspense } from "react";
+import useGetSummary from "@/modules/summary/api/use-get-summary";
 import { formatDateRange } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
+//icons
 import { FaPiggyBank } from "react-icons/fa";
-import { FaArrowTrendDown, FaArrowTrendUp } from "react-icons/fa6";
-import { DataCard } from "./data-card";
-import { Card, CardContent, CardHeader } from "./ui/card";
-import { Skeleton } from "./ui/skeleton";
+import { FaArrowTrendUp, FaArrowTrendDown } from "react-icons/fa6";
+import { DataCard, DataCardLoading } from "@/components/data-card";
 
-export const DataGrid = () => {
-  const params = useSearchParams();
+const DataGridContent = () => {
   const { data, isLoading } = useGetSummary();
-
+  const params = useSearchParams();
   const to = params.get("to") || undefined;
   const from = params.get("from") || undefined;
+  const dateRangeLabel = formatDateRange({ from, to });
 
-  const dateRangeLabel = formatDateRange({ to, from });
-
-  if (isLoading) {
+  if (isLoading)
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-2 mb-8">
         <DataCardLoading />
@@ -26,14 +23,13 @@ export const DataGrid = () => {
         <DataCardLoading />
       </div>
     );
-  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-2 mb-8">
       <DataCard
         title="Remaining"
         value={data?.remainingAmount}
-        percentageChange={data?.remainingChange}
+        percentChange={data?.remainingChange}
         icon={FaPiggyBank}
         variant="default"
         dateRange={dateRangeLabel}
@@ -41,37 +37,37 @@ export const DataGrid = () => {
       <DataCard
         title="Income"
         value={data?.incomeAmount}
-        percentageChange={data?.incomeChange}
+        percentChange={data?.incomeChange}
         icon={FaArrowTrendUp}
-        variant="success"
+        variant="default"
         dateRange={dateRangeLabel}
       />
       <DataCard
         title="Expenses"
-        value={data?.expenseAmount}
-        percentageChange={data?.expenseChange}
+        value={data?.expensesAmount}
+        percentChange={data?.expensesChange}
         icon={FaArrowTrendDown}
-        variant="danger"
+        variant="default"
         dateRange={dateRangeLabel}
       />
     </div>
   );
 };
 
-export const DataCardLoading = () => {
+const DataGrid = () => {
   return (
-    <Card className="border-none drop-shadow-sm h-[192px]">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-6 w-24" />
-          <Skeleton className="h-4 w-40" />
+    <Suspense
+      fallback={
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-2 mb-8">
+          <DataCardLoading />
+          <DataCardLoading />
+          <DataCardLoading />
         </div>
-        <Skeleton className="size-12" />
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="shrink-0 h-10 w-24 mb-2" />
-        <Skeleton className="shrink-0 h-4 w-40" />
-      </CardContent>
-    </Card>
+      }
+    >
+      <DataGridContent />
+    </Suspense>
   );
 };
+
+export default DataGrid;

@@ -1,37 +1,39 @@
 import { z } from "zod";
+import { Trash } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { insertAccountSchema } from "@/db/schema";
 
+// schadn components
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
-import { insertAccountSchema } from "@/db/schema";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Trash } from "lucide-react";
 
 export const formSchema = insertAccountSchema.pick({ name: true });
 
 export type FormValues = z.infer<typeof formSchema>;
 
-interface Props {
+type Props = {
   id?: string;
   defaultValues?: FormValues;
   onSubmit: (values: FormValues) => void;
   onDelete?: () => void;
   disabled?: boolean;
-}
+};
 
 export const AccountForm = ({
-  onSubmit,
-  defaultValues,
-  disabled,
   id,
+  defaultValues,
+  onSubmit,
   onDelete,
+  disabled,
 }: Props) => {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -45,7 +47,6 @@ export const AccountForm = ({
   const handleDelete = () => {
     onDelete?.();
   };
-
   return (
     <Form {...form}>
       <form
@@ -57,19 +58,20 @@ export const AccountForm = ({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Accounts Name</FormLabel>
+              <FormLabel>Account Name</FormLabel>
               <FormControl>
                 <Input
                   disabled={disabled}
-                  placeholder="e.g cash, bank, credit card"
+                  placeholder="e.g. Cash, Bank, Credit Card"
                   {...field}
                 />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={disabled}>
-          {id ? "save changes" : "create account"}
+        <Button type="submit" disabled={disabled} className="w-full">
+          {id ? "Save Changes" : "Create Account"}
         </Button>
         {!!id && (
           <Button

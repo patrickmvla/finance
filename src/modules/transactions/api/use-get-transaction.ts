@@ -1,20 +1,19 @@
-import { client } from "@/lib/hono";
-import { convertAmountFromMiliunits } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 
-export const useGetTransaction = (id?: string) => {
+import { client } from "@/lib/hono";
+import { convertAmountFromMiliunits } from "@/lib/utils";
+
+const useGetTransaction = (id?: string) => {
   const query = useQuery({
     enabled: !!id,
-    queryKey: ["account", id],
+    queryKey: ["transaction", { id }],
     queryFn: async () => {
-      const response = await client.api.transactions[":id"]["$get"]({
-        param: { id },
-      });
-      if (!response.ok) {
-        throw new Error("Failed to fetch individual transactions");
+      const res = await client.api.transactions[":id"].$get({ param: { id } });
+      if (!res.ok) {
+        throw new Error("Failed to fetch transaction");
       }
+      const { data } = await res.json();
 
-      const { data } = await response.json();
       return {
         ...data,
         amount: convertAmountFromMiliunits(data.amount),
@@ -23,3 +22,5 @@ export const useGetTransaction = (id?: string) => {
   });
   return query;
 };
+
+export default useGetTransaction;

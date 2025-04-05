@@ -1,7 +1,3 @@
-import { insertCategorySchema } from "@/db/schema";
-import { z } from "zod";
-import { useNewCategory } from "../hooks/use-new-category";
-import { useCreateCategory } from "../api/use-create-category";
 import {
   Sheet,
   SheetContent,
@@ -9,39 +5,37 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { CategoryForm } from "./category-form";
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const formSchema = insertCategorySchema.pick({ name: true });
-
-type FormValues = z.input<typeof formSchema>;
+// category hook
+import {
+  CategoryForm,
+  FormValues,
+} from "@/modules/categories/components/category-form";
+import { useNewCategory } from "@/modules/categories/hooks";
+import { useCreateCategory } from "@/modules/categories/api";
 
 export const NewCategorySheet = () => {
   const { isOpen, onClose } = useNewCategory();
-
   const mutation = useCreateCategory();
-
-  const onSubmit = (values: FormValues) => {
-    mutation.mutate(values, {
+  const onSubmit = (formValues: FormValues) => {
+    mutation.mutate(formValues, {
       onSuccess: () => {
         onClose();
       },
     });
   };
-
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent>
+      <SheetContent className="space-y-4">
         <SheetHeader>
           <SheetTitle>New Category</SheetTitle>
           <SheetDescription>
-            Create a new category to track your transactions
+            Create a new category to organize your transactions
           </SheetDescription>
         </SheetHeader>
         <CategoryForm
           onSubmit={onSubmit}
-          disabled={mutation.isPending}
           defaultValues={{ name: "" }}
+          disabled={mutation.isPending}
         />
       </SheetContent>
     </Sheet>
